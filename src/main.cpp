@@ -2,11 +2,9 @@
 #include "SDL3/SDL_main.h"
 #include "light.cpp"
 #include <list>
-#include <iostream>
 #include <cstdlib>
 #include <cstdio>
 #include <thread>
-#include <sstream>
 #include <chrono>
 
 const int TARGET_FPS = 60;
@@ -20,8 +18,8 @@ SDL_Event event;
 
 bool running = true;
 
-const int NUMBODIES = 500;
-const int NUMLIGHT = 5000;
+const int NUMBODIES = 2;
+const int NUMLIGHT = 300;
 Light lights[NUMLIGHT];
 Ray rays[NUMLIGHT];
 Body bodies[NUMBODIES];
@@ -109,77 +107,86 @@ void UpdateWindow()
         for(int j = 0; j < NUMBODIES; j++)
         {
             if(i == j || bodies[j].getX() > 1000 || bodies[j].getX() < -200 || bodies[j].getY() < - 200 || bodies[j].getY() > 800) continue;
+            if(bodies[j].getX() == -10) continue;
             
             bodies[j].CalculateGravity(bodies[i].getX(), bodies[i].getY(), bodies[i].getMass(), deltaTime);
         }
-    }
-    for(int i = 0; i < NUMLIGHT; i++)
-    {
-        if(lights[i].getX() > 1000 || lights[i].getX() < -200 || lights[i].getY() < - 200 || lights[i].getY() > 800) continue;
 
-        if(lights[i].getX() != -10)
+        for(int j = 0; j < NUMLIGHT; j++)
         {
-            lights[i].CalculateMotion(bodies[0].getX(), bodies[0].getY(), bodies[0].getMass(), deltaTime);
-            lights[i].Move(deltaTime);
+            if(lights[j].getX() > 1000 || lights[j].getX() < -200 || lights[j].getY() < - 200 || lights[j].getY() > 800) continue;
 
-            
-            rays[i].Move(lights[i].getX(), lights[i].getY());
-        }
-        else
-        {
-            rays[i].Move(-10,-10);
-        }
-
-        for(int j = 0; j < NUM_LIGHT_RAYS - 1; j++)
-        {
-            if(rays[i].getX(j) != -10 && rays[i].getX(j+1) != -10)
+            if(lights[j].getX() != -10.0)
             {
-                SDL_RenderLine(renderer, rays[i].getX(j), rays[i].getY(j), rays[i].getX(j+1), rays[i].getY(j+1));
+                lights[j].CalculateMotion(bodies[i].getX(), bodies[i].getY(), bodies[i].getMass(), deltaTime);
+                if(i == NUMBODIES - 1)
+                {
+                    lights[j].Move(deltaTime);
+
+                    rays[j].Move(lights[j].getX(), lights[j].getY());
+                }
+            }
+            else
+            {
+                if(i == NUMBODIES - 1)
+                {
+                    rays[j].Move(-10,-10);
+                }
+            }
+
+            for(int k = 0; k < NUM_LIGHT_RAYS - 1; k++)
+            {
+                if(rays[j].getX(k) != -10 && rays[j].getX(k+1) != -10)
+                {
+                    SDL_RenderLine(renderer, rays[j].getX(k), rays[j].getY(k), rays[j].getX(k+1), rays[j].getY(k+1));
+                }
             }
         }
     }
-
+    
     for(int i = 0; i < NUMBODIES; i++)
     {
-        if(bodies[i].getX() > 1000 || bodies[i].getX() < -200 || bodies[i].getY() < - 200 || bodies[i].getY() > 800) continue;
+        if(bodies[i].getX() > 1000.0 || bodies[i].getX() < -200.0 || bodies[i].getY() < - 200.0 || bodies[i].getY() > 800.0) continue;
+        if(bodies[i].getX() == -10) continue;
 
         bodies[i].Move(deltaTime);
 
         if(i != 0)
         {
-            if(insideCircle(bodies[0].getX(), bodies[0].getY(), bodies[i].getX(), bodies[i].getY(), blackHoleSchwarzschildRadius))
+            if(insideCircle(bodies[0].getX(), bodies[0].getY(), bodies[i].getX(), bodies[i].getY(), bodies[0].getRadius()))
             {
                 Body e;
-                e.Setup(-10, -10, 0, 0, 0, 0);
+                e.Setup(-10.0, -10.0, 0, 0, 0, 0, true);
                 bodies[i] = e;
             }
             if(bodies[i].getMass() != 0)
             {
-                SDL_SetRenderDrawColor(renderer, 30, 150, 30, 255);
+                SDL_SetRenderDrawColor(renderer, pRed, pBlue, pGreen, 255);
                 DrawFilledCircle(renderer, bodies[i].getX(), bodies[i].getY(), bodies[i].getRadius());
+            }
+        }
+
+        for(int j = 0; j < NUMLIGHT; j++)
+        {
+            if(lights[j].getX() == -10) continue;
+            if(lights[j].getX() > 1000.0 || lights[j].getX() < -200.0 || lights[j].getY() < - 200.0 || lights[j].getY() > 800.0)
+            {
+                Light e;
+                e.Setup(-10, -10, 0, 0);
+                lights[j] = e;
+
+                continue;
+            }
+            if(!bodies[i].isStationary()) continue; //only blackhole 'absorbs' light right now
+            if(insideCircle(bodies[i].getX(), bodies[i].getY(), lights[j].getX(), lights[j].getY(), bodies[i].getRadius()))
+            {
+                Light e;
+                e.Setup(-10, -10, 0, 0);
+                lights[j] = e;
             }
         }
     }
 
-    for(int j = 0; j < NUMLIGHT; j++)
-    {
-        if(lights[j].getX() > 1000 || lights[j].getX() < -200 || lights[j].getY() < - 200 || lights[j].getY() > 800)
-        {
-            Light e;
-            e.Setup(-10, -10, 0, 0);
-            lights[j] = e;
-
-            continue;
-        }
-        if(insideCircle(bodies[0].getX(), bodies[0].getY(), lights[j].getX(), lights[j].getY(), blackHoleSchwarzschildRadius))
-        {
-            Light e;
-            e.Setup(-10, -10, 0, 0);
-            lights[j] = e;
-        }
-    }
-    SDL_SetRenderDrawColor(renderer, 25, 25, 25, 255);
-    DrawFilledCircle(renderer, bodies[0].getX(), bodies[0].getY(), blackHoleSchwarzschildRadius);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     DrawFilledCircle(renderer, bodies[0].getX(), bodies[0].getY(), bodies[0].getRadius());
 
@@ -197,7 +204,7 @@ void UpdateWindow()
         int mouseY = event.motion.y;
 
         Body n;
-        n.Setup(mouseX, mouseY, 0, 0, 10, 10000);
+        n.Setup(mouseX, mouseY, 0, 0, 10, 10000, true);
         int i = rand()%NUMBODIES;
         if(i == 0) i = 1;
         bodies[i] = n;
@@ -212,9 +219,19 @@ void UpdateWindow()
             // print variables
             for(int i = 0; i < NUMLIGHT; i++)
             {
-                if(lights[i].getX() != -10)
+                if(lights[i].getX() != -10.0)
                     std::cout << " > " << std::to_string(lights[i].getStartX()) << " , " << std::to_string(lights[i].getStartY());
             }
+        }
+        if(event.key.key == SDLK_A)
+        {
+            //pause
+            deltaTime = 0.0;
+        }
+        if(event.key.key == SDLK_D)
+        {
+            //play
+            deltaTime = 1/60.0;
         }
     }
 
@@ -223,8 +240,6 @@ void UpdateWindow()
     double dt = std::chrono::duration<double>(frameEnd - frameStartA).count();
     double fps = 1.0 / dt;
     fpss.push_front(fps);
-
-    deltaTime = 1/60.0;
 
     if (frameTime < FRAME_DELAY) {
         SDL_Delay(FRAME_DELAY - frameTime);
@@ -239,7 +254,7 @@ int main(int argv, char* args[])
     std::cout << "Seed: " << seed << "\n";
     
     // Set seed:
-    std::srand(1773236746);
+    //std::srand(1773236746);
 
     pRed = rand() % 256;
     pGreen = rand() % 256;
@@ -261,24 +276,26 @@ int main(int argv, char* args[])
     Body blackHole;
     Body planet;
 
-    planet.Setup(400, 150, 2889.75, 0, 10, 10000);
+    planet.Setup(400, 250, 0, 0, 10, blackHoleMass, true);
 
     //asteroid.Setup(400, 10, 10+5, 0, 1, 1000);
 
     //Body asteroid;
-    blackHole.Setup(400, 300, 0, 0, 50, blackHoleMass);
     //asteroid.Setup(400, 200, 0, 0, 10, 200000);
-
-    bodies[0] = blackHole;
-    bodies[1] = planet;
     
     double gDouble = static_cast<double>(G);
     //double cDouble = static_cast<double>(C);
     double cDouble = 298;
     //double bhMass = bodies[0].getMass();
     double bhMass = 50000000;
-    blackHoleSchwarzschildRadius = (2*gDouble*bhMass) / (cDouble * cDouble);
-    std::cout << std::to_string(blackHoleSchwarzschildRadius);
+    //blackHoleSchwarzschildRadius = (2*gDouble*bhMass) / (cDouble * cDouble);
+    blackHoleSchwarzschildRadius = 56.303770;
+    //std::cout << std::to_string(blackHoleSchwarzschildRadius);
+
+    blackHole.Setup(400, 350, 0, 0, blackHoleSchwarzschildRadius, blackHoleMass, true);
+
+    bodies[0] = blackHole;
+    bodies[1] = planet;
 
     // for(int i = 1; i < 300; i++)
     // {
@@ -288,28 +305,61 @@ int main(int argv, char* args[])
     //     bodies[i] = l;
     // }
 
-    for(int i = 0; i < 5000; i++)
+    for(int i = 0; i < NUMLIGHT; i++)
     {
         Light l;
-        float vX = 1;
-        l.Setup(1, i*(600.0f/5000), vX, 0);
-        lights[i] = l;
+        float x = 0.0;
+        float y = 0.0;
+        float vX = 0.0;
+        float vY = 0.0;
+        
+        int falseI = i;
+        while(falseI > 3)
+        {
+            falseI -= 4;
+        }
 
+        if(falseI == 0)
+        {
+            y = 0;
+            x = i*(800.0f/NUMLIGHT);
+            vY = 1;
+        }
+        else if(falseI == 1)
+        {
+            y = 600;
+            x = i*(800.0f/NUMLIGHT);
+            vY = -1;
+        }
+        else if(falseI == 2)
+        {
+            x = 0;
+            y = i*(600.0f/NUMLIGHT);
+            vX = 1;
+        }
+        else
+        {
+            x = 800;
+            y = i*(600.0f/NUMLIGHT);
+            vX = -1;
+        }
+
+        l.Setup(x, y, vX, vY);
+        lights[i] = l;
         Ray r;
         r.Setup(-10, -10);
         rays[i] = r;
     }
 
-    
-    Light l;
-    float vX = 1;
-    l.Setup(1, 10, vX, 0);
-    lights[0] = l;
+    // Light l;
+    // float vX = 1;
+    // l.Setup(1, 10, vX, 0);
+    // lights[0] = l;
 
-    Ray r;
-    r.Setup(1, 10);
-    rays[0] = r;
-    
+    // Ray r;
+    // r.Setup(1, 10);
+    // rays[0] = r;
+
     InitWindow();
 
     while(running)
