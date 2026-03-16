@@ -13,9 +13,10 @@ private:
     double vY;
     double radius;
     double mass;
+    bool stationary;
 
 public:
-    void Setup(double x, double y, double velX, double velY, double radius, double mass)
+    void Setup(double x, double y, double velX, double velY, double radius, double mass, bool stationary)
     {
         this->x = x;
         this->y = y;
@@ -23,6 +24,7 @@ public:
         this->vY = velY;
         this->radius = radius;
         this->mass = mass;
+        this->stationary = stationary;
     }
 
     // SDL_FRect Render()
@@ -33,6 +35,7 @@ public:
 
     void CalculateGravity(double pX, double pY, double mass, double deltaTime)
     {
+        if(this->stationary) return;
         if(mass == 0) return;
         double dX = pX - this->x;
         double dY = pY - this->y;
@@ -54,6 +57,7 @@ public:
 
     void Move(double deltaTime)
     {
+        if(this->stationary) return;
         this->x += this->vX * deltaTime;
         this->y += this->vY * deltaTime;        
     }
@@ -64,4 +68,6 @@ public:
     double getRadius() { return this->radius; }
     double getVX() { return this->vX; }
     double getVY() { return this->vY; }
+
+    bool isStationary() { return this->stationary; }
 };
