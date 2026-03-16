@@ -52,6 +52,14 @@ public:
         this->y += this->vY * deltaTime;
     }
 
+    void setV(double vX, double vY)
+    {
+        this->vX = vX;
+        this->vY = vY;
+    }
+
+    double getVX() { return this->vX; }
+    double getVY() { return this->vY; }
     double getX() { return this->x; }
     double getY() { return this->y; }
     double getStartX() { return this->startX; }
