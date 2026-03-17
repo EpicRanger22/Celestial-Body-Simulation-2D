@@ -17,8 +17,10 @@ public:
         this->y = y;
         this->startX = x;
         this->startY = y;
-        this->vX = vX;
-        this->vY = vY;
+
+        float magVelocity = sqrt(vX*vX+vY*vY);
+        this->vX = C * vX/magVelocity;
+        this->vY = C * vY/magVelocity;
     }
 
     void CalculateMotion(double pX, double pY, double mass, double deltaTime)
