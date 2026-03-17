@@ -1,4 +1,4 @@
 #define M_PI 3.14159265358979323846
 #define C 298
 #define G 0.05
-#define NUM_LIGHT_RAYS 50
+#define NUM_LIGHT_RAYS 100
