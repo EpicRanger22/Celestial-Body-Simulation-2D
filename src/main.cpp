@@ -45,10 +45,6 @@ int pRed;
 int pGreen;
 int pBlue;
 
-// const int SIZE = 200;
-// int xs[SIZE];
-// int ys[SIZE];
-
 bool outOfScreenBody(Body body)
 {
     return body.getX() > SCREENWIDTH + SCREENOFFSET || body.getX() < -SCREENOFFSET || body.getY() < -SCREENOFFSET || body.getY() > SCREENHEIGHT + SCREENOFFSET;
@@ -129,7 +125,6 @@ void Setup()
     double bhMass = 50000000;
     //blackHoleSchwarzschildRadius = (2*gDouble*bhMass) / (cDouble * cDouble);
     blackHoleSchwarzschildRadius = 56.303770;
-    //std::cout << std::to_string(blackHoleSchwarzschildRadius);
 
     if(simConfig.useSchwarzschildRadius)
     {
@@ -144,14 +139,6 @@ void Setup()
 
     bodies.push_back(blackHole);
     bodies.push_back(planet);
-
-    // for(int i = 1; i < 300; i++)
-    // {
-    //     Body l;
-    //     float vX = 200;
-    //     l.Setup(0, i*2, vX, 0, 1, 0.001f);
-    //     bodies[i] = l;
-    // }
 
     // Start lights at edges of screen
     /*for(int i = 0; i < NUMLIGHT; i++)
@@ -204,7 +191,6 @@ void Setup()
     // Starting velocity is outwards + offset
     float r = 2*M_PI/(simConfig.numLights + 0.0f);
     float dist = 100;
-    //float offset = M_PI/2.78f;
     float offset = 0.0f;
     double C = simConfig.C;
     for(int i = 0; i < simConfig.numLights; i++)
@@ -225,15 +211,6 @@ void Setup()
         r.Setup(-10, -10);
         rays.push_back(r);
     }
-
-    // Light l;
-    // float vX = 1;
-    // l.Setup(1, 10, vX, 0);
-    // lights[0] = l;
-
-    // Ray r;
-    // r.Setup(1, 10);
-    // rays[0] = r;
 }
 
 void UpdateWindow()
@@ -278,6 +255,8 @@ void UpdateWindow()
         if(event.key.key == SDLK_R)
         {
             //restart
+            timer = 0;
+            lightsOut = false;
             Setup();
         }
     }
@@ -304,23 +283,6 @@ void UpdateWindow()
 
     SDL_FRect windowRect = {0, 0, float(wWidth), float(wHeight)};
     SDL_RenderFillRect(renderer, &windowRect);
-
-    // for (int i = SIZE - 1; i > 0; i--)
-    // {
-    //     xs[i] = xs[i - 1];
-    //     ys[i] = ys[i - 1];
-    // }
-
-    // xs[0] = bodies[1].getX();
-    // ys[0] = bodies[1].getY();
-
-    // SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-    // for(int i = 0; i < SIZE - 1; i++)
-    // {
-    //     if(xs[i] != 0 && xs[i+1] != 0)
-    //         SDL_RenderLine(renderer, xs[i], ys[i], xs[i+1],ys[i+1]);
-    // }
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 100);
     for(int i = 0; i < simConfig.numBodies; i++)
