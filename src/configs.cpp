@@ -1,5 +1,4 @@
-#include "../headers/configs.h"
-#include "../headers/constants.h"
+#include "../headers/configs.hpp"
 #include <iostream>
 #include <fstream>
 #include <string>

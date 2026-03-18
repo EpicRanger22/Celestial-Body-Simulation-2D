@@ -2,7 +2,7 @@
 #include <iostream>
 #include "SDL3/SDL.h"
 #include <sstream>
-#include "../headers/configs.h"
+#include "../headers/configs.hpp"
 
 class Body
 {

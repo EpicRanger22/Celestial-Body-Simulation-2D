@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <thread>
-#include "../headers/constants.h"
+#include "../headers/constants.hpp"
 #include <chrono>
 
 float timeScale = 1.0f;
