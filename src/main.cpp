@@ -8,10 +8,9 @@
 #include "../headers/constants.h"
 #include <chrono>
 
-const int TARGET_FPS = 60;
-const Uint64 FRAME_DELAY = 1000 / TARGET_FPS;
 float timeScale = 1.0f;
-double deltaTime = 0.0f;
+double deltaTime = 0.0;
+double activeDt = 0.0;
 
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -24,6 +23,8 @@ const int SCREENOFFSET = 10;
 bool running = true;
 
 bool mouseDown;
+
+bool paused = false;
 
 bool lightsOut = false;
 
@@ -215,8 +216,7 @@ void Setup()
 
 void UpdateWindow()
 {
-    Uint64 frameStart = SDL_GetTicks();
-    auto frameStartA = std::chrono::high_resolution_clock::now();
+    auto frameStart = std::chrono::high_resolution_clock::now();
 
     SDL_PollEvent(&event);
 
@@ -234,8 +234,8 @@ void UpdateWindow()
     }
     if(event.type == SDL_EVENT_KEY_DOWN)
     {
-        if(event.key.key == SDLK_COMMA) timeScale -= 0.5f;
-        if(event.key.key == SDLK_PERIOD) timeScale += 0.5f;
+        if(event.key.key == SDLK_COMMA) timeScale -= 0.1f;
+        if(event.key.key == SDLK_PERIOD) timeScale += 0.1f;
 
         if(event.key.key == SDLK_P)
         {
@@ -245,12 +245,12 @@ void UpdateWindow()
         if(event.key.key == SDLK_A)
         {
             //pause
-            deltaTime = 0.0;
+            paused = true;
         }
         if(event.key.key == SDLK_D)
         {
             //play
-            deltaTime = 1/60.0;
+            paused = false;
         }
         if(event.key.key == SDLK_R)
         {
@@ -306,13 +306,13 @@ void UpdateWindow()
                 {
                     lights[j].Move(deltaTime);
 
-                    if(deltaTime != 0.0)
+                    if(!paused)
                         rays[j].Move(lights[j].getX(), lights[j].getY());
                 }
             }
             else
             {
-                if(i == simConfig.numBodies - 1 && deltaTime != 0.0)
+                if(i == simConfig.numBodies - 1 && !paused)
                 {
                     rays[j].Move(-10,-10);
                 }
@@ -391,20 +391,19 @@ void UpdateWindow()
         if(out == simConfig.numLights) lightsOut = true;
     }
 
-    Uint64 frameTime = SDL_GetTicks() - frameStart;
     auto frameEnd = std::chrono::high_resolution_clock::now();
-    double dt = std::chrono::duration<double>(frameEnd - frameStartA).count();
-    
-    if(deltaTime != 0.0 && lightsOut)
-        timer += dt;
+    activeDt = std::chrono::duration<double>(frameEnd - frameStart).count();
 
-    double fps = 1.0 / dt;
+    if(!paused)
+        deltaTime = activeDt * timeScale;
+    else
+        deltaTime = 0.0;
+
+    if(!paused && lightsOut)
+        timer += activeDt;
+
+    double fps = 1.0 / activeDt;
     fpss.push_front(fps);
-
-    if (frameTime < FRAME_DELAY) 
-    {
-        SDL_Delay(FRAME_DELAY - frameTime);
-    }
 
     if(timer >= t)
     {
