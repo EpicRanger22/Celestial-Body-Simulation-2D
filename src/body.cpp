@@ -2,7 +2,7 @@
 #include <iostream>
 #include "SDL3/SDL.h"
 #include <sstream>
-#include "constants.cpp"
+#include "../headers/configs.h"
 
 class Body
 {
@@ -46,7 +46,7 @@ public:
         double nX = dX / dist;
         double nY = dY / dist;
 
-        double accel = G * mass / (dist*dist);
+        double accel = simConfig.G * mass / (dist*dist);
 
         double aX = accel * nX;
         double aY = accel * nY;

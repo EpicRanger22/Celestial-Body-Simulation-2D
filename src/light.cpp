@@ -1,4 +1,5 @@
 #include "body.cpp"
+#include <vector>
 
 class Light
 {
@@ -19,8 +20,8 @@ public:
         this->startY = y;
 
         float magVelocity = sqrt(vX*vX+vY*vY);
-        this->vX = C * vX/magVelocity;
-        this->vY = C * vY/magVelocity;
+        this->vX = simConfig.C * vX/magVelocity;
+        this->vY = simConfig.C * vY/magVelocity;
     }
 
     void CalculateMotion(double pX, double pY, double mass, double deltaTime)
@@ -35,7 +36,7 @@ public:
 
         double L = dX*this->vY - dY*this->vX;
 
-        double accel = (3*G*mass)/(C*C*dist*dist*dist*dist*dist) * (L*L);
+        double accel = (3*simConfig.G*mass)/(simConfig.C*simConfig.C*dist*dist*dist*dist*dist) * (L*L);
         
         double aX = accel * (dX/dist);
         double aY = accel * (dY/dist);
@@ -44,8 +45,8 @@ public:
         this->vY += aY * deltaTime;
 
         double v = sqrt((this->vX)*(this->vX)+(this->vY)*(this->vY));
-        this->vX = C*this->vX/v;
-        this->vY = C*this->vY/v;
+        this->vX = simConfig.C*this->vX/v;
+        this->vY = simConfig.C*this->vY/v;
     }
 
     void Move(double deltaTime)
@@ -71,31 +72,32 @@ public:
 class Ray
 {
 private:
-    double xs[NUM_LIGHT_RAYS];
-    double ys[NUM_LIGHT_RAYS];
+    std::vector<double> xs;
+    std::vector<double> ys;
 
 public:
     void Setup(double x, double y)
     {
-        for(int i = 0; i < NUM_LIGHT_RAYS; i++)
+        for(int i = 0; i < simConfig.numLightRays; i++)
         {
-            this->xs[i] = x;
-            this->ys[i] = y;
+            this->xs.push_back(x);
+            this->ys.push_back(y);
         }
-
-        this->xs[0] = x;
-        this->ys[0] = y;
     }   
 
     void Move(double x, double y)
     {
-        for (int i = NUM_LIGHT_RAYS - 1; i > 0; i--)
+        this->xs.insert(this->xs.begin(), x);
+        if(this->xs.size() > simConfig.numLightRays) 
         {
-            this->xs[i] = this->xs[i - 1];
-            this->ys[i] = this->ys[i - 1];
+            xs.pop_back();
         }
-        xs[0] = x;
-        ys[0] = y;
+
+        this->ys.insert(this->ys.begin(), y);
+        if(this->ys.size() > simConfig.numLightRays)
+        {
+            ys.pop_back();
+        }
     }
 
     double getX(int i) { return this->xs[i]; }

@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <thread>
+#include "../headers/constants.h"
 #include <chrono>
 
 const int TARGET_FPS = 60;
@@ -26,17 +27,15 @@ bool mouseDown;
 
 bool lightsOut = false;
 
-const int NUMBODIES = 2;
-const int NUMLIGHT = 300;
-Light lights[NUMLIGHT];
-Ray rays[NUMLIGHT];
-Body bodies[NUMBODIES];
+std::vector<Light> lights;
+std::vector<Ray> rays;
+std::vector<Body> bodies;
 
 double timer = 0.0;
 double t = 1.0;
 
-double planetX = SCREENWIDTH / 2.0 + 300;
-double planetY = SCREENHEIGHT / 2.0;
+double planetX = 0.0;
+double planetY = 0.0;
 
 double blackHoleSchwarzschildRadius = 0.0;
 
@@ -93,6 +92,13 @@ void InitWindow()
 
 void Setup()
 {
+    if(bodies.size() > 0)
+    {
+        bodies.clear();
+        lights.clear();
+        rays.clear();
+    }
+
     double scalar = 1.0f;
     
     double radiusSun = (700000000.0) * scalar;
@@ -109,26 +115,35 @@ void Setup()
 
     double startingV = 1000;
 
-    planet.Setup(planetX, planetY, 0, 0, 56.303770, blackHoleMass, true);
+    planet.Setup(planetX, planetY, 0, 0, simConfig.planetRadius, simConfig.planetMass, true);
 
     //asteroid.Setup(400, 10, 10+5, 0, 1, 1000);
 
     //Body asteroid;
     //asteroid.Setup(400, 200, 0, 0, 10, 200000);
     
-    double gDouble = static_cast<double>(G);
+    double gDouble = static_cast<double>(simConfig.G);
     //double cDouble = static_cast<double>(C);
-    double cDouble = 298;
+    double cDouble = static_cast<double>(simConfig.C);
     //double bhMass = bodies[0].getMass();
     double bhMass = 50000000;
     //blackHoleSchwarzschildRadius = (2*gDouble*bhMass) / (cDouble * cDouble);
     blackHoleSchwarzschildRadius = 56.303770;
     //std::cout << std::to_string(blackHoleSchwarzschildRadius);
 
-    blackHole.Setup(SCREENWIDTH/2.0-300, SCREENHEIGHT/2.0, 0, 0, blackHoleSchwarzschildRadius, blackHoleMass, true);
+    if(simConfig.useSchwarzschildRadius)
+    {
+        blackHoleSchwarzschildRadius = (2*gDouble*simConfig.blackHoleMass) / (cDouble * cDouble);
+    }
+    else
+    {
+        blackHoleSchwarzschildRadius = simConfig.blackHoleRadius;
+    }
 
-    bodies[0] = blackHole;
-    bodies[1] = planet;
+    blackHole.Setup(simConfig.blackHoleX, simConfig.blackHoleY, 0, 0, blackHoleSchwarzschildRadius, simConfig.blackHoleMass, true);
+
+    bodies.push_back(blackHole);
+    bodies.push_back(planet);
 
     // for(int i = 1; i < 300; i++)
     // {
@@ -187,11 +202,12 @@ void Setup()
 
     // Circle radius r around center going inwards/outwards
     // Starting velocity is outwards + offset
-    float r = 2*M_PI/(NUMLIGHT + 0.0f);
+    float r = 2*M_PI/(simConfig.numLights + 0.0f);
     float dist = 100;
     //float offset = M_PI/2.78f;
     float offset = 0.0f;
-    for(int i = 0; i < NUMLIGHT; i++)
+    double C = simConfig.C;
+    for(int i = 0; i < simConfig.numLights; i++)
     {
         Light l;
         float x = SCREENWIDTH / 2.0;
@@ -202,11 +218,12 @@ void Setup()
         float vX = C*cos(r*i+offset);
         float vY = -C*sin(r*i+offset);
         l.Setup(x, y, -vX, -vY);
-        lights[i] = l;
+        
+        lights.push_back(l);
 
         Ray r;
         r.Setup(-10, -10);
-        rays[i] = r;
+        rays.push_back(r);
     }
 
     // Light l;
@@ -306,9 +323,9 @@ void UpdateWindow()
     // }
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 100);
-    for(int i = 0; i < NUMBODIES; i++)
+    for(int i = 0; i < simConfig.numBodies; i++)
     {
-        for(int j = 0; j < NUMBODIES; j++)
+        for(int j = 0; j < simConfig.numBodies; j++)
         {
             if(i == j || outOfScreenBody(bodies[j])) continue;
             if(bodies[j].getX() == -10) continue;
@@ -316,23 +333,24 @@ void UpdateWindow()
             bodies[j].CalculateGravity(bodies[i].getX(), bodies[i].getY(), bodies[i].getMass(), deltaTime);
         }
 
-        for(int j = 0; j < NUMLIGHT; j++)
+        for(int j = 0; j < simConfig.numLights; j++)
         {
             if(outOfScreenLight(lights[j])) continue;
 
             if(lights[j].getX() != -10.0)
             {
                 lights[j].CalculateMotion(bodies[i].getX(), bodies[i].getY(), bodies[i].getMass(), deltaTime);
-                if(i == NUMBODIES - 1)
+                if(i == simConfig.numBodies - 1)
                 {
                     lights[j].Move(deltaTime);
 
-                    rays[j].Move(lights[j].getX(), lights[j].getY());
+                    if(deltaTime != 0.0)
+                        rays[j].Move(lights[j].getX(), lights[j].getY());
                 }
             }
             else
             {
-                if(i == NUMBODIES - 1)
+                if(i == simConfig.numBodies - 1 && deltaTime != 0.0)
                 {
                     rays[j].Move(-10,-10);
                 }
@@ -340,18 +358,19 @@ void UpdateWindow()
         }
     }
 
-    for(int j = 0; j < NUMLIGHT; j++)
+    for(int j = 0; j < simConfig.numLights; j++)
     {
-        for(int k = 0; k < NUM_LIGHT_RAYS - 1; k++)
+        for(int k = 0; k < simConfig.numLightRays - 1; k++)
         {
             if(rays[j].getX(k) != -10 && rays[j].getX(k+1) != -10)
             {
+                // PROBLEM WITH RAY
                 SDL_RenderLine(renderer, rays[j].getX(k), rays[j].getY(k), rays[j].getX(k+1), rays[j].getY(k+1));
             }
         }
     }
     
-    for(int i = 0; i < NUMBODIES; i++)
+    for(int i = 0; i < simConfig.numBodies; i++)
     {
         if(outOfScreenBody(bodies[i])) continue;
         if(bodies[i].getX() == -10) continue;
@@ -373,7 +392,7 @@ void UpdateWindow()
             }
         }
 
-        for(int j = 0; j < NUMLIGHT; j++)
+        for(int j = 0; j < simConfig.numLights; j++)
         {
             if(lights[j].getX() == -10) continue;
             if(outOfScreenLight(lights[j]))
@@ -403,11 +422,11 @@ void UpdateWindow()
     {
         int out = 0;
 
-        for(int i = 0; i < NUMLIGHT; i++)
+        for(int i = 0; i < simConfig.numLights; i++)
         {
             if(outOfScreenLight(lights[i]) || lights[i].getX() == -10) out++;
         }
-        if(out == NUMLIGHT) lightsOut = true;
+        if(out == simConfig.numLights) lightsOut = true;
     }
 
     Uint64 frameTime = SDL_GetTicks() - frameStart;
@@ -433,6 +452,7 @@ void UpdateWindow()
     }
 }
 
+
 int main(int argv, char* args[])
 {
     int seed = static_cast<unsigned int>(std::time(nullptr));
@@ -448,6 +468,10 @@ int main(int argv, char* args[])
     pBlue = rand() % 256;
 
     // v = sqrt(GM((2/r)-(1/r)))
+
+    simConfig = Configs(0);
+    planetX = simConfig.planetX;
+    planetY = simConfig.planetY;
 
     Setup();
 
