@@ -1,6 +1,6 @@
 #pragma once
-#ifndef CONFIGS_H
-#define CONFIGS_H
+#ifndef CONFIGS_HPP
+#define CONFIGS_HPP
 
 struct SimulationConfig
 {
