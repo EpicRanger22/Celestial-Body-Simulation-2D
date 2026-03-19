@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CONFIGS_HPP
-#define CONFIGS_HPP
 
 struct SimulationConfig
 {
@@ -26,5 +24,3 @@ struct SimulationConfig
 SimulationConfig Configs(int cfgIndex);
 
 extern SimulationConfig simConfig;
-
-#endif

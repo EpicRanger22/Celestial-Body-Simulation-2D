@@ -1,12 +1,17 @@
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_main.h"
-#include "light.cpp"
-#include <list>
+//#include <list>
 #include <cstdlib>
 #include <cstdio>
 #include <thread>
 #include "../headers/constants.hpp"
+#include "../headers/body.hpp"
+#include "../headers/ray.hpp"
+#include "../headers/light.hpp"
+#include "../headers/collisions.hpp"
 #include <chrono>
+#include <iostream>
+#include <string>
 
 float timeScale = 1.0f;
 double deltaTime = 0.0;
@@ -40,33 +45,11 @@ double planetY = 0.0;
 
 double blackHoleSchwarzschildRadius = 0.0;
 
-std::list<float> fpss;
+std::vector<float> fpss;
 
 int pRed;
 int pGreen;
 int pBlue;
-
-bool outOfScreenBody(Body body)
-{
-    return body.getX() > SCREENWIDTH + SCREENOFFSET || body.getX() < -SCREENOFFSET || body.getY() < -SCREENOFFSET || body.getY() > SCREENHEIGHT + SCREENOFFSET;
-}
-bool outOfScreenLight(Light light)
-{
-    return light.getX() > SCREENWIDTH + SCREENOFFSET || light.getX() < -SCREENOFFSET || light.getY() < -SCREENOFFSET || light.getY() > SCREENHEIGHT + SCREENOFFSET;
-}
-
-bool insideCircle(float cX, float cY, float x, float y, float radius)
-{
-    // black hole: (400, 300)
-    // so at 400, 300 = (400-400)^2+(300-300)^2=0
-    float circ = 0.0f;
-    float rad = 0.0f;
-    circ = (x-cX)*(x-cX)+(y-cY)*(y-cY);
-    rad = radius * radius;
-
-    if(circ <= rad) return true;
-    return false;
-}
 
 void DrawFilledCircle(SDL_Renderer* renderer, int cx, int cy, int radius)
 {
@@ -96,29 +79,6 @@ void Setup()
         rays.clear();
     }
 
-    double scalar = 1.0f;
-    
-    double radiusSun = (700000000.0) * scalar;
-    double mSun = (2.0*pow(10,30)) * scalar; // kg
-    double blackHoleMass = 25000000000;
-    double rEarthToSun = (149.6*pow(10,9)) * scalar; // million m
-    double vEarth = (29784.8) * scalar; // ms^-1
-    double mEarth = (5.972*pow(10, 24)) * scalar;
-    double radiusEarth = (6371000.0) * scalar;
-
-    //blackHole.Setup(400, 300, 0, 0, 20, 100000);
-    Body blackHole;
-    Body planet;
-
-    double startingV = 1000;
-
-    planet.Setup(planetX, planetY, 0, 0, simConfig.planetRadius, simConfig.planetMass, true);
-
-    //asteroid.Setup(400, 10, 10+5, 0, 1, 1000);
-
-    //Body asteroid;
-    //asteroid.Setup(400, 200, 0, 0, 10, 200000);
-    
     double gDouble = static_cast<double>(simConfig.G);
     //double cDouble = static_cast<double>(C);
     double cDouble = static_cast<double>(simConfig.C);
@@ -136,7 +96,8 @@ void Setup()
         blackHoleSchwarzschildRadius = simConfig.blackHoleRadius;
     }
 
-    blackHole.Setup(simConfig.blackHoleX, simConfig.blackHoleY, 0, 0, blackHoleSchwarzschildRadius, simConfig.blackHoleMass, true);
+    Body blackHole{simConfig.blackHoleX, simConfig.blackHoleY, 0, 0, blackHoleSchwarzschildRadius, simConfig.blackHoleMass, true};
+    Body planet{planetX, planetY, 0, 0, simConfig.planetRadius, simConfig.planetMass, true};
 
     bodies.push_back(blackHole);
     bodies.push_back(planet);
@@ -196,7 +157,6 @@ void Setup()
     double C = simConfig.C;
     for(int i = 0; i < simConfig.numLights; i++)
     {
-        Light l;
         float x = SCREENWIDTH / 2.0;
         float y = SCREENHEIGHT/2.0;
         x += dist*cos(r*i);
@@ -204,12 +164,11 @@ void Setup()
 
         float vX = C*cos(r*i+offset);
         float vY = -C*sin(r*i+offset);
-        l.Setup(x, y, -vX, -vY);
+        Light l{x, y, -vX, -vY};
         
         lights.push_back(l);
 
-        Ray r;
-        r.Setup(-10, -10);
+        Ray r{-10, -10};
         rays.push_back(r);
     }
 }
@@ -289,7 +248,7 @@ void UpdateWindow()
     {
         for(int j = 0; j < simConfig.numBodies; j++)
         {
-            if(i == j || outOfScreenBody(bodies[j])) continue;
+            if(i == j || Collisions::outOfScreen(bodies[j].getX(), bodies[j].getY())) continue;
             if(bodies[j].getX() == -10) continue;
             
             bodies[j].CalculateGravity(bodies[i].getX(), bodies[i].getY(), bodies[i].getMass(), deltaTime);
@@ -297,7 +256,7 @@ void UpdateWindow()
 
         for(int j = 0; j < simConfig.numLights; j++)
         {
-            if(outOfScreenLight(lights[j])) continue;
+            if(Collisions::outOfScreen(lights[j].getX(), lights[j].getY())) continue;
 
             if(lights[j].getX() != -10.0)
             {
@@ -334,17 +293,17 @@ void UpdateWindow()
     
     for(int i = 0; i < simConfig.numBodies; i++)
     {
-        if(outOfScreenBody(bodies[i])) continue;
+        if(Collisions::outOfScreen(bodies[i].getX(), bodies[i].getY())) continue;
         if(bodies[i].getX() == -10) continue;
 
         bodies[i].Move(deltaTime);
 
         if(i != 0)
         {
-            if(insideCircle(bodies[0].getX(), bodies[0].getY(), bodies[i].getX(), bodies[i].getY(), bodies[0].getRadius()))
+            if(Collisions::insideCircle(bodies[0].getX(), bodies[0].getY(), bodies[i].getX(), bodies[i].getY(), bodies[0].getRadius()))
             {
-                Body e;
-                e.Setup(-10.0, -10.0, 0, 0, 0, 0, true);
+                //bodies.erase(i + bodies.begin());
+                Body e{-10.0, -10.0, 0, 0, 0, 0, true};
                 bodies[i] = e;
             }
             if(bodies[i].getMass() != 0)
@@ -357,19 +316,18 @@ void UpdateWindow()
         for(int j = 0; j < simConfig.numLights; j++)
         {
             if(lights[j].getX() == -10) continue;
-            if(outOfScreenLight(lights[j]))
+            if(Collisions::outOfScreen(lights[j].getX(), lights[j].getY()))
             {
-                Light e;
-                e.Setup(-10, -10, 0, 0);
+                //lights.erase(j + lights.begin());
+                Light e{-10, -10, 0, 0};
                 lights[j] = e;
 
                 continue;
             }
             if(!bodies[i].isStationary()) continue; //only blackhole 'absorbs' light right now
-            if(insideCircle(bodies[i].getX(), bodies[i].getY(), lights[j].getX(), lights[j].getY(), bodies[i].getRadius()))
+            if(Collisions::insideCircle(bodies[i].getX(), bodies[i].getY(), lights[j].getX(), lights[j].getY(), bodies[i].getRadius()))
             {
-                Light e;
-                e.Setup(-10, -10, 0, 0);
+                Light e{-10, -10, 0, 0};
                 lights[j] = e;
             }
         }
@@ -386,7 +344,7 @@ void UpdateWindow()
 
         for(int i = 0; i < simConfig.numLights; i++)
         {
-            if(outOfScreenLight(lights[i]) || lights[i].getX() == -10) out++;
+            if(Collisions::outOfScreen(lights[i].getX(), lights[i].getY()) || lights[i].getX() == -10) out++;
         }
         if(out == simConfig.numLights) lightsOut = true;
     }
@@ -403,7 +361,7 @@ void UpdateWindow()
         timer += activeDt;
 
     double fps = 1.0 / activeDt;
-    fpss.push_front(fps);
+    fpss.push_back(fps);
 
     if(timer >= t)
     {
@@ -427,6 +385,8 @@ int main(int argv, char* args[])
     pRed = rand() % 256;
     pGreen = rand() % 256;
     pBlue = rand() % 256;
+
+    Collisions::Setup(SCREENWIDTH, SCREENHEIGHT, SCREENOFFSET);
 
     // v = sqrt(GM((2/r)-(1/r)))
 

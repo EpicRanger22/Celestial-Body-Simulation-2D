@@ -51,8 +51,6 @@ SimulationConfig Configs(int cfgIndex)
         }
     }
 
-    //cfg.G = std::stod()
-
     file.close();
 
     return cfg;

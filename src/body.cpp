@@ -1,79 +1,56 @@
-#include <cmath>
-#include <iostream>
-#include "SDL3/SDL.h"
-#include <sstream>
-#include "../headers/configs.hpp"
+#include "../headers/body.hpp"
 
-class Body
+Body::Body(double _x, double _y, double _vX, double _vY, double _radius, double _mass, bool _stationary)
 {
-private:
-    double x;
-    double y;
-    double vX;
-    double vY;
-    double radius;
-    double mass;
-    bool stationary;
+    x = _x;
+    y = _y;
+    vX = _vX;
+    vY = _vY;
+    radius = _radius;
+    mass = _mass;
+    stationary = _stationary;
+}
 
-public:
-    void Setup(double x, double y, double velX, double velY, double radius, double mass, bool stationary)
-    {
-        this->x = x;
-        this->y = y;
-        this->vX = velX;
-        this->vY = velY;
-        this->radius = radius;
-        this->mass = mass;
-        this->stationary = stationary;
-    }
+void Body::CalculateGravity(double _pX, double _pY, double _mass, double _dt)
+{
+    if(stationary) return;
+    if(mass == 0) return;
+    double dX = _pX - x;
+    double dY = _pY - y;
 
-    // SDL_FRect Render()
-    // {
-    //     SDL_FRect rect = {this->x-this->radius/2, this->y-this->radius/2, this->radius, this->radius};
-    //     return rect;
-    // }
+    double dist = sqrt(dX*dX + dY*dY);
+    if(dist == 0) return;
 
-    void CalculateGravity(double pX, double pY, double mass, double deltaTime)
-    {
-        if(this->stationary) return;
-        if(mass == 0) return;
-        double dX = pX - this->x;
-        double dY = pY - this->y;
+    double nX = dX / dist;
+    double nY = dY / dist;
 
-        double dist = sqrt(dX*dX + dY*dY);
-        if(dist == 0) return;
+    double accel = simConfig.G * _mass / (dist*dist);
 
-        double nX = dX / dist;
-        double nY = dY / dist;
+    double aX = accel * nX;
+    double aY = accel * nY;
 
-        double accel = simConfig.G * mass / (dist*dist);
+    vX += aX * _dt;
+    vY += aY * _dt;
+}
 
-        double aX = accel * nX;
-        double aY = accel * nY;
+void Body::Move(double _dt)
+{
+    if(stationary) return;
+    x += vX * _dt;
+    y += vY * _dt;        
+}
 
-        this->vX += aX * deltaTime;
-        this->vY += aY * deltaTime;
-    }
+void Body::setPosition(double _x, double _y)
+{
+    x = _x;
+    y = _y;
+}
 
-    void Move(double deltaTime)
-    {
-        if(this->stationary) return;
-        this->x += this->vX * deltaTime;
-        this->y += this->vY * deltaTime;        
-    }
+double Body::getX() { return x; }
+double Body::getY() { return y; }
+double Body::getMass() { return mass; }
+double Body::getRadius() { return radius; }
+double Body::getVX() { return vX; }
+double Body::getVY() { return vY; }
 
-    void setPosition(double x, double y)
-    {
-        this->x = x;
-        this->y = y;
-    }
-
-    double getX() { return this->x; }
-    double getY() { return this->y; }
-    double getMass() { return this->mass; }
-    double getRadius() { return this->radius; }
-    double getVX() { return this->vX; }
-    double getVY() { return this->vY; }
-
-    bool isStationary() { return this->stationary; }
-};
+bool Body::isStationary() { return stationary; }
