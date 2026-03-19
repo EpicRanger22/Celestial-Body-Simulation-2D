@@ -21,8 +21,8 @@ SDL_Window *window;
 SDL_Renderer *renderer;
 SDL_Event event;
 
-const int SCREENWIDTH = 2560;
-const int SCREENHEIGHT = 1600;
+const int SCREENWIDTH = 800;
+const int SCREENHEIGHT = 600;
 const int SCREENOFFSET = 10;
 
 bool running = true;
@@ -31,7 +31,15 @@ bool mouseDown;
 
 bool paused = false;
 
+double lightSpawnX = 0;
+double lightSpawnY = 0;
+double randomDirectionOffset = 0.5;
+double spawnTimer = 0.0;
+double spawnRate = 0.01;
+
 bool lightsOut = false;
+
+double densityRadius = 5.0;
 
 std::vector<Light> lights;
 std::vector<Ray> rays;
@@ -50,6 +58,30 @@ std::vector<float> fpss;
 int pRed;
 int pGreen;
 int pBlue;
+
+double CalculateDensity(double _pX, double _pY, std::vector<Light> _lights)
+{
+    double pointDensity = 0.0;
+    int amountInside = -1;
+    for(int i = 0; i < _lights.size(); i++)
+    {
+        double iX = _lights[i].getX();
+        double iY = _lights[i].getY();
+        double dX = _pX - iX;
+        double dY = _pY - iY;
+
+        double dist = dX*dX + dY*dY;
+        if (dist > densityRadius*densityRadius || dist == 0)
+            continue;
+
+        if(Collisions::insideCircle(_pX, _pY, iX, iY, densityRadius))
+        {
+            amountInside++;
+        }
+    }
+
+    return pointDensity = amountInside;
+}
 
 void DrawFilledCircle(SDL_Renderer* renderer, int cx, int cy, int radius)
 {
@@ -102,6 +134,14 @@ void Setup()
     bodies.push_back(blackHole);
     bodies.push_back(planet);
 
+    for(int i = 0; i < simConfig.numLights; i++)
+    {
+        Light a{0, 0, 1, 1};
+        lights.push_back(a);
+        Ray b{0,0};
+        rays.push_back(b);
+    }
+
     // Start lights at edges of screen
     /*for(int i = 0; i < NUMLIGHT; i++)
     {
@@ -151,26 +191,26 @@ void Setup()
 
     // Circle radius r around center going inwards/outwards
     // Starting velocity is outwards + offset
-    float r = 2*M_PI/(simConfig.numLights + 0.0f);
-    float dist = 100;
-    float offset = 0.0f;
-    double C = simConfig.C;
-    for(int i = 0; i < simConfig.numLights; i++)
-    {
-        float x = SCREENWIDTH / 2.0;
-        float y = SCREENHEIGHT/2.0;
-        x += dist*cos(r*i);
-        y += dist*sin(r*i);
+    // float r = 2*M_PI/(simConfig.numLights + 0.0f);
+    // float dist = 100;
+    // float offset = 0.0f;
+    // double C = simConfig.C;
+    // for(int i = 0; i < simConfig.numLights; i++)
+    // {
+    //     float x = SCREENWIDTH / 2.0;
+    //     float y = SCREENHEIGHT/2.0;
+    //     x += dist*cos(r*i);
+    //     y += dist*sin(r*i);
 
-        float vX = C*cos(r*i+offset);
-        float vY = -C*sin(r*i+offset);
-        Light l{x, y, -vX, -vY};
+    //     float vX = C*cos(r*i+offset);
+    //     float vY = -C*sin(r*i+offset);
+    //     Light l{x, y, -vX, -vY};
         
-        lights.push_back(l);
+    //     lights.push_back(l);
 
-        Ray r{-10, -10};
-        rays.push_back(r);
-    }
+    //     Ray r{-10, -10};
+    //     rays.push_back(r);
+    // }
 }
 
 void UpdateWindow()
@@ -285,7 +325,6 @@ void UpdateWindow()
         {
             if(rays[j].getX(k) != -10 && rays[j].getX(k+1) != -10)
             {
-                // PROBLEM WITH RAY
                 SDL_RenderLine(renderer, rays[j].getX(k), rays[j].getY(k), rays[j].getX(k+1), rays[j].getY(k+1));
             }
         }
@@ -336,6 +375,52 @@ void UpdateWindow()
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     DrawFilledCircle(renderer, bodies[0].getX(), bodies[0].getY(), bodies[0].getRadius());
 
+    // SPAWN LiGHT AT "SUN"
+    if(spawnTimer >= spawnRate)
+    {
+        spawnTimer = 0;
+
+        double ang;
+
+        int r = rand() % 2;
+        if(r == 0)
+        {
+            double _rand = rand() % 1000; // 0-999
+            double p = (_rand/1000)*randomDirectionOffset;
+            ang = (M_PI/4) + p;
+        }
+        else
+        {
+            double _rand = rand() % 1000; // 0-999
+            double p = (_rand/1000)*randomDirectionOffset;
+            ang = (M_PI/4) - p;
+        }
+
+        double dirX = cos(ang);
+        double dirY = sin(ang);
+        Light n{lightSpawnX, lightSpawnY, dirX, dirY};
+        lights.insert(lights.begin(), n);
+
+        Ray a{-10, -10};
+        rays.insert(rays.begin(), a);
+
+        if(lights.size() > simConfig.numLights)
+        {
+            lights.pop_back();
+            rays.pop_back();
+        }
+    }
+
+    // Density and display
+    // SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    // for(int w = 0; w < SCREENWIDTH; w += 5)
+    // {
+    //     for(int h = 0; h < SCREENHEIGHT; h += 5)
+    //     {
+    //         DrawFilledCircle(renderer, w, h, CalculateDensity(w, h, lights));
+    //     }
+    // }
+
     SDL_RenderPresent(renderer);
 
     if(!lightsOut)
@@ -353,12 +438,17 @@ void UpdateWindow()
     activeDt = std::chrono::duration<double>(frameEnd - frameStart).count();
 
     if(!paused)
+    {
         deltaTime = activeDt * timeScale;
+        spawnTimer += deltaTime;
+    }
     else
+    {
         deltaTime = 0.0;
+    }
 
     if(!paused && lightsOut)
-        timer += activeDt;
+        timer += deltaTime;
 
     double fps = 1.0 / activeDt;
     fpss.push_back(fps);

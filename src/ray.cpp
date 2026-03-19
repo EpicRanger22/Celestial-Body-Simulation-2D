@@ -17,7 +17,7 @@ void Ray::Move(double _x, double _y)
         xs.pop_back();
     }
 
-    this->ys.insert(ys.begin(), _y);
+    ys.insert(ys.begin(), _y);
     if(ys.size() > simConfig.numLightRays)
     {
         ys.pop_back();
