@@ -21,8 +21,8 @@ SDL_Window *window;
 SDL_Renderer *renderer;
 SDL_Event event;
 
-const int SCREENWIDTH = 800;
-const int SCREENHEIGHT = 600;
+const int SCREENWIDTH = 1920;
+const int SCREENHEIGHT = 1200;
 const int SCREENOFFSET = 10;
 
 bool running = true;
@@ -31,9 +31,9 @@ bool mouseDown;
 
 bool paused = false;
 
-double lightSpawnX = 0;
-double lightSpawnY = 0;
-double randomDirectionOffset = 0.5;
+double lightSpawnX = 1920/2.0;
+double lightSpawnY = 1200/2.0;
+double randomDirectionOffset = 3;
 double spawnTimer = 0.0;
 double spawnRate = 0.01;
 
