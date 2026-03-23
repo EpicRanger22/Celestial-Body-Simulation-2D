@@ -27,6 +27,9 @@ const int SCREENOFFSET = 10;
 
 bool running = true;
 
+// RESET WHEN LIGHTS OFF SCREEN?
+bool autoReset = false;
+
 bool mouseDown;
 
 bool paused = false;
@@ -58,6 +61,10 @@ std::vector<float> fpss;
 int pRed;
 int pGreen;
 int pBlue;
+
+int numStars = 100;
+typedef struct {int x, y; } int2;
+std::vector<int2> stars;
 
 double CalculateDensity(double _pX, double _pY, std::vector<Light> _lights)
 {
@@ -109,6 +116,13 @@ void Setup()
         bodies.clear();
         lights.clear();
         rays.clear();
+        stars.clear();
+    }
+
+    for(int i = 0; i < numStars; i++)
+    {
+        int2 _pos{rand() % SCREENWIDTH, rand() % SCREENHEIGHT};
+        stars.push_back(_pos);
     }
 
     double gDouble = static_cast<double>(simConfig.G);
@@ -128,8 +142,9 @@ void Setup()
         blackHoleSchwarzschildRadius = simConfig.blackHoleRadius;
     }
 
-    Body blackHole{simConfig.blackHoleX, simConfig.blackHoleY, 0, 0, blackHoleSchwarzschildRadius, simConfig.blackHoleMass, true};
-    Body planet{planetX, planetY, 0, 0, simConfig.planetRadius, simConfig.planetMass, true};
+    double _v = 1000;
+    Body blackHole{simConfig.blackHoleX, simConfig.blackHoleY, -_v, 0, blackHoleSchwarzschildRadius, simConfig.blackHoleMass, false};
+    Body planet{planetX, planetY, _v, 0, simConfig.planetRadius, simConfig.planetMass, false};
 
     bodies.push_back(blackHole);
     bodies.push_back(planet);
@@ -294,6 +309,12 @@ void UpdateWindow()
     SDL_RenderFillRect(renderer, &windowRect);
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 100);
+
+    for(int i = 0; i < numStars; i++)
+    {
+        DrawFilledCircle(renderer, stars[i].x, stars[i].y, 3);
+    }
+
     for(int i = 0; i < simConfig.numBodies; i++)
     {
         for(int j = 0; j < simConfig.numBodies; j++)
@@ -376,7 +397,7 @@ void UpdateWindow()
 
                 continue;
             }
-            if(!bodies[i].isStationary()) continue; //only blackhole 'absorbs' light right now
+            //if(!bodies[i].isStationary()) continue;
             if(Collisions::insideCircle(bodies[i].getX(), bodies[i].getY(), lights[j].getX(), lights[j].getY(), bodies[i].getRadius()))
             {
                 Light e{-10, -10, 0, 0};
@@ -436,7 +457,7 @@ void UpdateWindow()
 
     SDL_RenderPresent(renderer);
 
-    if(!lightsOut)
+    if(!lightsOut && autoReset)
     {
         int out = 0;
 
@@ -460,13 +481,13 @@ void UpdateWindow()
         deltaTime = 0.0;
     }
 
-    if(!paused && lightsOut)
+    if(!paused && lightsOut && autoReset)
         timer += deltaTime;
 
     double fps = 1.0 / activeDt;
     fpss.push_back(fps);
 
-    if(timer >= t)
+    if(timer >= t && autoReset)
     {
         timer = 0;
         lightsOut = false;
