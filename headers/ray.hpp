@@ -3,9 +3,12 @@
 #include <vector>
 #include "configs.hpp"
 
+typedef struct {int r, g, b, a;} int4;
+
 class Ray
 {
 private:
+    std::vector<int4> color;
     std::vector<double> xs;
     std::vector<double> ys;
 
@@ -15,4 +18,5 @@ public:
 
     double getX(int _i);
     double getY(int _i);
+    int4 getColor(int _i);
 };

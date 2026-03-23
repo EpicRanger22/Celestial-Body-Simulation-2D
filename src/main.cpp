@@ -236,11 +236,21 @@ void UpdateWindow()
         if(event.key.key == SDLK_COMMA) timeScale -= 0.1f;
         if(event.key.key == SDLK_PERIOD) timeScale += 0.1f;
 
-        if(event.key.key == SDLK_P)
+        if(event.key.key == SDLK_Y)
         {
-            // print variables
-            printf(" planetX: %f planetY: %f", planetX,planetY);
+            // increase planetmass
+            double m = bodies[1].getMass() * 2.0;
+            Body b{bodies[1].getX(), bodies[1].getY(), bodies[1].getVX(), bodies[1].getVY(), bodies[1].getRadius(), m, bodies[1].isStationary()};
+            bodies[1] = b;
         }
+        if(event.key.key == SDLK_U)
+        {
+            // decrease planetmass
+            double m = bodies[1].getMass() / 2.0;
+            Body b{bodies[1].getX(), bodies[1].getY(), bodies[1].getVX(), bodies[1].getVY(), bodies[1].getRadius(), m, bodies[1].isStationary()};
+            bodies[1] = b;
+        }
+
         if(event.key.key == SDLK_A)
         {
             //pause
@@ -325,6 +335,9 @@ void UpdateWindow()
         {
             if(rays[j].getX(k) != -10 && rays[j].getX(k+1) != -10)
             {
+                int4 _c = rays[j].getColor(k);
+                SDL_SetRenderDrawColor(renderer, _c.r, _c.g, _c.b, _c.a);
+
                 SDL_RenderLine(renderer, rays[j].getX(k), rays[j].getY(k), rays[j].getX(k+1), rays[j].getY(k+1));
             }
         }

@@ -6,6 +6,24 @@ Ray::Ray(double _x, double _y)
     {
         xs.push_back(_x);
         ys.push_back(_y);
+        int4 _c;
+        if(simConfig.numLightRays > 255)
+        {
+
+        }
+        else
+        {
+            // Fade into background not black
+            if(i <= 20)
+            {
+                _c = {20, 20, 20, 20};
+            }
+            else
+            {
+                _c = {i, i, i, i};
+            }
+            color.insert(color.begin(), _c);
+        }
     }
 }   
 
@@ -26,3 +44,4 @@ void Ray::Move(double _x, double _y)
 
 double Ray::getX(int _i) { return xs[_i]; }
 double Ray::getY(int _i) { return ys[_i]; }
+int4 Ray::getColor(int _i) { return color[_i]; }
