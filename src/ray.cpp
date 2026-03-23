@@ -2,6 +2,8 @@
 
 Ray::Ray(double _x, double _y)
 {
+    gone = false;
+
     for(int i = 0; i < simConfig.numLightRays; i++)
     {
         xs.push_back(_x);
@@ -29,6 +31,7 @@ Ray::Ray(double _x, double _y)
 
 void Ray::Move(double _x, double _y)
 {
+    if(gone) return;
     xs.insert(xs.begin(), _x);
     if(xs.size() > simConfig.numLightRays) 
     {
@@ -39,6 +42,19 @@ void Ray::Move(double _x, double _y)
     if(ys.size() > simConfig.numLightRays)
     {
         ys.pop_back();
+    }
+}
+
+void Ray::setGone()
+{
+    gone = true;
+
+    xs.clear();
+    ys.clear();
+    for(int i = 0; i < simConfig.numLightRays; i++)
+    {
+        xs.push_back(-10);
+        ys.push_back(-10);
     }
 }
 

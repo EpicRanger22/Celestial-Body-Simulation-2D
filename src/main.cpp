@@ -30,15 +30,19 @@ bool running = true;
 // RESET WHEN LIGHTS OFF SCREEN?
 bool autoReset = false;
 
+// Whether or not to let rays slowly fade away (go towards last light pos) or just disappear
+bool instaDeleteLightRays = false;
+
 bool mouseDown;
 
 bool paused = false;
 
-double lightSpawnX = 1920/2.0;
-double lightSpawnY = 1200/2.0;
-double randomDirectionOffset = 3;
+double lightSpawnX = 10;
+double lightSpawnY = 10;
+double randomDirectionOffset = 0.3;
+double startingOffset = 0.5;
 double spawnTimer = 0.0;
-double spawnRate = 0.01;
+double spawnRate = 0.05;
 
 bool lightsOut = false;
 
@@ -143,7 +147,7 @@ void Setup()
     }
 
     double _v = 1000;
-    Body blackHole{simConfig.blackHoleX, simConfig.blackHoleY, -_v, 0, blackHoleSchwarzschildRadius, simConfig.blackHoleMass, false};
+    Body blackHole{simConfig.blackHoleX, simConfig.blackHoleY, 0, 0, blackHoleSchwarzschildRadius, simConfig.blackHoleMass, true};
     Body planet{planetX, planetY, _v, 0, simConfig.planetRadius, simConfig.planetMass, false};
 
     bodies.push_back(blackHole);
@@ -402,9 +406,14 @@ void UpdateWindow()
             {
                 Light e{-10, -10, 0, 0};
                 lights[j] = e;
+                if(instaDeleteLightRays)
+                    rays[j].setGone();
             }
         }
     }
+
+    SDL_SetRenderDrawColor(renderer, 238,238,155,255);
+    DrawFilledCircle(renderer, 10, 10, 20);
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     DrawFilledCircle(renderer, bodies[0].getX(), bodies[0].getY(), bodies[0].getRadius());
@@ -421,13 +430,13 @@ void UpdateWindow()
         {
             double _rand = rand() % 1000; // 0-999
             double p = (_rand/1000)*randomDirectionOffset;
-            ang = (M_PI/4) + p;
+            ang = (startingOffset) + p;
         }
         else
         {
             double _rand = rand() % 1000; // 0-999
             double p = (_rand/1000)*randomDirectionOffset;
-            ang = (M_PI/4) - p;
+            ang = (startingOffset) - p;
         }
 
         double dirX = cos(ang);
@@ -435,7 +444,7 @@ void UpdateWindow()
         Light n{lightSpawnX, lightSpawnY, dirX, dirY};
         lights.insert(lights.begin(), n);
 
-        Ray a{-10, -10};
+        Ray a{lightSpawnX, lightSpawnY};
         rays.insert(rays.begin(), a);
 
         if(lights.size() > simConfig.numLights)
@@ -473,7 +482,10 @@ void UpdateWindow()
 
     if(!paused)
     {
-        deltaTime = activeDt * timeScale;
+        if(activeDt <= 0.025)
+            deltaTime = activeDt * timeScale;
+        else
+            deltaTime = 1/60.0;
         spawnTimer += deltaTime;
     }
     else
