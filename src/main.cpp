@@ -1,6 +1,5 @@
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_main.h"
-//#include <list>
 #include <cstdlib>
 #include <cstdio>
 #include <thread>
@@ -13,7 +12,7 @@
 #include <iostream>
 #include <string>
 
-float timeScale = 1.0f;
+float timeScale = 0.1f;
 double deltaTime = 0.0;
 double activeDt = 0.0;
 
@@ -150,6 +149,27 @@ void Setup()
     Body blackHole{simConfig.blackHoleX, simConfig.blackHoleY, 0, 0, blackHoleSchwarzschildRadius, simConfig.blackHoleMass, true};
     Body planet{planetX, planetY, _v, 0, simConfig.planetRadius, simConfig.planetMass, false};
 
+    std::vector<particle> _accretionDisk;
+
+    float r = 2*M_PI/50.0;
+    float dist = 100;
+    float offset = M_PI/2.0;
+    double v = 3536;
+    for(int i = 0; i < 50; i++)
+    {
+        float x = simConfig.blackHoleX;
+        float y = simConfig.blackHoleY;
+        x += dist*cos(r*i);
+        y += dist*sin(r*i);
+
+        float vX = -v*cos(r*i+offset);
+        float vY = -v*sin(r*i+offset);
+        
+        particle _p = {x, y, vX, vY, 155, 42, 54};
+
+        _accretionDisk.push_back(_p);
+    }
+    blackHole.setDisk(_accretionDisk);
     bodies.push_back(blackHole);
     bodies.push_back(planet);
 
@@ -417,6 +437,35 @@ void UpdateWindow()
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     DrawFilledCircle(renderer, bodies[0].getX(), bodies[0].getY(), bodies[0].getRadius());
+
+    for(int i = 0; i < 50; i++)
+    {
+        particle _p = bodies[0].getDisk(i);
+        
+        double dX = bodies[0].getX() - _p.x;
+        double dY = bodies[0].getY() - _p.y;
+
+        double dist = sqrt(dX*dX + dY*dY);
+        if(dist != 0)
+        {
+            double nX = dX / dist;
+            double nY = dY / dist;
+
+            double accel = simConfig.G * bodies[0].getMass() / (dist*dist);
+
+            double aX = accel * nX;
+            double aY = accel * nY;
+
+            _p.vX += aX * deltaTime;
+            _p.vY += aY * deltaTime;
+
+            _p.x += _p.vX * deltaTime;
+            _p.y += _p.vY * deltaTime;
+        }
+        bodies[0].setAccretionPoint(_p, i);
+        SDL_SetRenderDrawColor(renderer, _p.r, _p.g, _p.b, 255);
+        DrawFilledCircle(renderer, _p.x, _p.y, 3);
+    }
 
     // SPAWN LiGHT AT "SUN"
     if(spawnTimer >= spawnRate)

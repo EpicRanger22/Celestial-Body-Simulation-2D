@@ -37,7 +37,7 @@ void Body::Move(double _dt)
 {
     if(stationary) return;
     x += vX * _dt;
-    y += vY * _dt;        
+    y += vY * _dt;   
 }
 
 void Body::setPosition(double _x, double _y)
@@ -46,6 +46,18 @@ void Body::setPosition(double _x, double _y)
     y = _y;
 }
 
+void Body::setDisk(std::vector<particle> _p)
+{
+    accretionDisk.clear();
+
+    accretionDisk = _p;
+}
+void Body::setAccretionPoint(particle _p, int _i)
+{
+    accretionDisk[_i] = _p;
+}
+
+particle Body::getDisk(int _i) { return accretionDisk[_i]; }
 double Body::getX() { return x; }
 double Body::getY() { return y; }
 double Body::getMass() { return mass; }
